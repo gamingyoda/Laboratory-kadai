@@ -35,11 +35,9 @@ int main(void)
         }
     }
 
-    // 目標点
     double X = 3.08;
     double u = (X - x[0]) / h;
 
-    // 学生風に、ループ内で階乗と分子をその都度計算（非効率だけど分かりやすい）
     double sum = diff[0][0];
     for (k = 1; k < N; k++) {
         double numer = 1.0;
