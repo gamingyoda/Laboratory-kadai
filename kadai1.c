@@ -12,13 +12,11 @@ int main(void)
     SetConsoleOutputCP(CP_UTF8);
 #endif
 
-    // データ
     double x[N] = {3.0, 3.1, 3.2, 3.3, 3.4};
     double y[N] = {1.09861, 1.13140, 1.16315, 1.19392, 1.22378};
 
     double h = x[1] - x[0];
 
-    // 前進差分表
     double diff[N][N];
     int i, j, k;
     for (i = 0; i < N; i++) {
@@ -49,7 +47,6 @@ int main(void)
         sum += (numer / fact) * diff[0][k];
     }
 
-    // 出力
     printf("前進差分表:\n");
     for (k = 0; k < N; k++) {
         printf("Δ^%d: ", k);
