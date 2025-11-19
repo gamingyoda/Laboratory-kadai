@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <math.h>
+#include <stdbool.h>
 
 #ifdef _WIN32
 #include <windows.h>
@@ -10,6 +11,8 @@
 #define NSTEPS 8000
 #define HSTEP  0.01
 #define PI 3.14159265358979323846
+#define VIEW_MIN -5.0
+#define VIEW_MAX  5.0
 
 void velocity(double xi, double eta,
               double xi0, double eta0, double r,
@@ -117,6 +120,8 @@ int main(void)
             return 1;
         }
 
+        bool entered_view = false;
+
         for (int n = 0; n < NSTEPS; n++) {
 
             double xr = xi - xi0;
@@ -128,7 +133,18 @@ int main(void)
 
             double x = xi  * (1.0 + (a*a)/denom);
             double y = eta * (1.0 - (a*a)/denom);
-            fprintf(fp, "%lf %lf\n", x, y);
+
+            double nx = x / a;
+            double ny = y / a;
+            int inside_view = (nx >= VIEW_MIN && nx <= VIEW_MAX &&
+                               ny >= VIEW_MIN && ny <= VIEW_MAX);
+
+            if (inside_view) {
+                entered_view = true;
+                fprintf(fp, "%lf %lf\n", x, y);
+            } else if (entered_view) {
+                break;
+            }
 
             double k1x,k1y,k2x,k2y,k3x,k3y,k4x,k4y;
             double tx,ty;
