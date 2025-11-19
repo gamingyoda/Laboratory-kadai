@@ -5,10 +5,10 @@
 #include <windows.h>
 #endif
 
-#define NPSI   9           
-#define NTHETA 720  
-#define NSTEPS 8000  
-#define HSTEP  0.01  
+#define NPSI   9
+#define NTHETA 720
+#define NSTEPS 8000
+#define HSTEP  0.01
 #define PI 3.14159265358979323846
 
 void velocity(double xi, double eta,
@@ -99,8 +99,8 @@ int main(void)
     }
     fclose(fp_airfoil);
 
-    double L = 4.0 * r; 
-    double S = 3.0 * r; 
+    double L = 8.0 * r;
+    double S = 3.0 * r;
 
     char fname[64];
 
@@ -122,7 +122,7 @@ int main(void)
             double xr = xi - xi0;
             double yr = eta - eta0;
             double rho2 = xr*xr + yr*yr;
-            if (rho2 < 1.0e-8) break; 
+            if (rho2 < 1.0e-8) break;
             double denom = xi*xi + eta*eta;
             if (denom < 1e-12) break;
 
@@ -162,14 +162,14 @@ int main(void)
         double xi_over_a   = xi0 / a;
         double eta_over_a  = eta0 / a;
         double r_over_a    = r   / a;
-        double G_over_2pUa = Gamma / (2.0 * PI * a * U); 
+        double G_over_2pUa = Gamma / (2.0 * PI * a * U);
 
         FILE *gp = fopen(script_name, "w");
         if (!gp) {
             printf("gnuplot スクリプト %s を作成できませんでした。\n", script_name);
         } else {
-            fprintf(gp, "set xlabel 'x'\n");
-            fprintf(gp, "set ylabel 'iy'\n");
+            fprintf(gp, "set xlabel 'x/a'\n");
+            fprintf(gp, "set ylabel 'iy/a'\n");
             fprintf(gp, "set grid\n");
             fprintf(gp, "set xrange [-5:5]\n");
             fprintf(gp, "set yrange [-5:5]\n");
@@ -186,11 +186,11 @@ int main(void)
 
             fprintf(gp, "plot \\\n");
             fprintf(gp,
-                    "  'airfoil.dat' using 1:2 with lines lt -1 notitle");
+                    "  'airfoil.dat' using ($1/%g):($2/%g) with lines lt -1 notitle", a, a);
             for (int k = 0; k < NPSI; k++) {
                 fprintf(gp,
-                        ", \\\n  'stream_%02d.dat' using 1:2 with lines lw 1 notitle",
-                        k);
+                        ", \\\n  'stream_%02d.dat' using ($1/%g):($2/%g) with lines lw 1 notitle",
+                        k, a, a);
             }
             fprintf(gp, "\n");
             fclose(gp);
