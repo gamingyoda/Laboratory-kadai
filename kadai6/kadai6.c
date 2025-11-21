@@ -6,7 +6,7 @@
 #include <windows.h>
 #endif
 
-#define NPSI   9
+#define NPSI   15
 #define NTHETA 720
 #define NSTEPS 8000
 #define HSTEP  0.01
@@ -76,7 +76,7 @@ int main(void)
     double r = sqrt((a - xi0)*(a - xi0) + eta0*eta0);
     printf("円の半径 r = %g\n", r);
 
-    double beta = atan2(-eta0, a - xi0);
+    double beta = atan2(eta0, a - xi0);
     double Gamma = -4.0 * PI * r * U * sin(alpha + beta);
 
     printf("beta (rad) = %g\n", beta);
@@ -109,13 +109,13 @@ int main(void)
     }
     fclose(fp_airfoil);
 
-    double L = 8.0 * r;
-    double S = 3.0 * r;
+    double L = 6.0 * r;
+    double S = 1.0 * r;
 
     char fname[64];
 
     for (int k = 0; k < NPSI; k++) {
-        double s = ((double)k/(NPSI-1) - 0.5) * 2.0 * S;
+        double s = ((double)k/(NPSI-1) - 0.5) * 2.0 * S - 1.25 * r;
 
         double xi  = xi0 - L*cosA + s*(-sinA);
         double eta = eta0 - L*sinA + s*( cosA);
