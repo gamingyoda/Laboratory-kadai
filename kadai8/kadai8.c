@@ -38,7 +38,6 @@ void apply_bc(double psi[][NY+1], double omega[][NY+1]);
 void update_vorticity(double psi[][NY+1], double omega[][NY+1], double dt);
 void solve_poisson_sor(double psi[][NY+1], double omega[][NY+1]);
 double max_abs_diff(double a[][NY+1], double b[][NY+1]);
-void print_psi_range(const char *msg);
 
 int main(void)
 {
@@ -57,7 +56,6 @@ int main(void)
     setup_solid_region();
 
     set_initial_conditions();
-    print_psi_range("初期状態");
 
     double t = 0.0;
     int    step = 0;
@@ -79,23 +77,19 @@ int main(void)
 
         apply_bc(psi, omega);
 
-        if (step % 200 == 0) {
-            print_psi_range("time step");
-        }
-
         double diff = max_abs_diff(psi, psi_old);
         if (step % 500 == 0) {
             printf("step=%6d, t=%8.4f, max|Δψ|=%e\n", step, t, diff);
         }
 
         if (!isnan(diff) && diff < STEADY_EPS) {
-            printf("定常に到達したとみなします: step=%d, t=%g\n", step, t);
+            printf("定常に到達: step=%d, t=%g\n", step, t);
             reached_steady = 1;
             break;
         }
 
         if (fabs(psi[NX/2][NY/2]) > 1.0e6) {
-            printf("ψ が非常に大きくなったため、発散と判断して終了します。\n");
+            printf("発散と判断\n");
             break;
         }
     }
@@ -130,9 +124,9 @@ int main(void)
     fprintf(gp, "set view map\n");
     fprintf(gp, "set contour base\n");
     fprintf(gp, "unset surface\n");
-    fprintf(gp, "set cntrparam levels discrete 0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1.0\n");
+    fprintf(gp, "set cntrparam levels incremental 0,0.2,4.0\n");
     fprintf(gp, "set object 1 rect from 0,0 to 4,1 fc rgb 'gray' fs solid 0.4 border lc rgb 'black'\n");
-    fprintf(gp, "splot 'field.dat' using 1:2:3 with lines\n");
+    fprintf(gp, "splot 'field.dat' using 1:2:3 with lines notitle\n");
     fclose(gp);
     char cmd[256];
 #ifdef _WIN32
@@ -350,25 +344,4 @@ double max_abs_diff(double a[][NY+1], double b[][NY+1])
         }
     }
     return m;
-}
-
-void print_psi_range(const char *msg)
-{
-    double psi_min = DBL_MAX;
-    double psi_max = -DBL_MAX;
-    int    nan_count = 0;
-
-    for (int i = 0; i <= NX; i++) {
-        for (int j = 0; j <= NY; j++) {
-            if (isnan(psi[i][j])) {
-                nan_count++;
-                continue;
-            }
-            if (psi[i][j] < psi_min) psi_min = psi[i][j];
-            if (psi[i][j] > psi_max) psi_max = psi[i][j];
-        }
-    }
-
-    printf("psi range (%s): [%g, %g], NaN count = %d\n",
-           msg, psi_min, psi_max, nan_count);
 }
