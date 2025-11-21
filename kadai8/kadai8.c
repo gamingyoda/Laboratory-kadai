@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <math.h>
 #include <float.h>
+#include <stdlib.h>
 
 #ifdef _WIN32
 #include <windows.h>
@@ -112,20 +113,39 @@ int main(void)
         double y = j * dy;
         for (int i = 0; i <= NX; i++) {
             double x = i * dx;
-            fprintf(fp, "%g %g %g %g\n", x, y, psi[i][j], omega[i][j]);
+            int solid = is_solid[i][j];
+            fprintf(fp, "%g %g %g %g %d\n", x, y, psi[i][j], omega[i][j], solid);
         }
         fprintf(fp, "\n");
     }
     fclose(fp);
-    printf("field.dat に x, y, psi, omega を出力しました。\n");
 
-    printf("\n【gnuplot で流線(ψ=const)を描く例】\n");
-    printf("  set size ratio -1\n");
-    printf("  set view map\n");
-    printf("  set contour base\n");
-    printf("  unset surface\n");
-    printf("  set cntrparam levels discrete 0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1.0\n");
-    printf("  splot 'field.dat' using 1:2:3 with lines\n");
+    const char *script_name = "kadai8.gp";
+    FILE *gp = fopen(script_name, "w");
+    if (!gp) {
+        printf("%s を作成できませんでした。\n", script_name);
+        return 1;
+    }
+    fprintf(gp, "set size ratio -1\n");
+    fprintf(gp, "set view map\n");
+    fprintf(gp, "set contour base\n");
+    fprintf(gp, "unset surface\n");
+    fprintf(gp, "set cntrparam levels discrete 0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1.0\n");
+    fprintf(gp, "set object 1 rect from 0,0 to 4,1 fc rgb 'gray' fs solid 0.4 border lc rgb 'black'\n");
+    fprintf(gp, "splot 'field.dat' using 1:2:3 with lines\n");
+    fclose(gp);
+    char cmd[256];
+#ifdef _WIN32
+    snprintf(cmd, sizeof(cmd), "cmd /c gnuplot -persist \"%s\"", script_name);
+#else
+    snprintf(cmd, sizeof(cmd), "gnuplot -persist \"%s\"", script_name);
+#endif
+    int ret = system(cmd);
+    if (ret != 0) {
+        printf("kadai8 の gnuplot 実行に失敗しました (return=%d)。\n", ret);
+    } else {
+        printf("kadai8 の結果を gnuplot で表示しました。\n");
+    }
 
     return 0;
 }
@@ -180,7 +200,6 @@ void apply_bc(double psi[][NY+1], double omega[][NY+1])
 {
     double U0 = 1.0; 
 
-
     for (int i = 0; i <= NX; i++) {
         if (is_solid[i][0]) {
             psi[i][0]   = 0.0;
@@ -212,22 +231,15 @@ void apply_bc(double psi[][NY+1], double omega[][NY+1])
     }
 
     for (int j = 0; j <= NY; j++) {
-        double y = j * dy;
 
         if (is_solid[0][j]) {
             psi[0][j]   = 0.0;
             omega[0][j] = 0.0;
         } else {
-            psi[0][j] = U0 * y;
-
-            if (!is_solid[1][j]) {
-                omega[0][j] = -2.0*(psi[1][j] - psi[0][j])/(dx*dx);
-            } else {
-                omega[0][j] = 0.0;
-            }
+            psi[0][j]   = psi[1][j];
+            omega[0][j] = omega[1][j];
         }
     }
-
 
     for (int j = 0; j <= NY; j++) {
         if (is_solid[NX][j]) {
