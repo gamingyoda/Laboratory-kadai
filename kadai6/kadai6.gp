@@ -5,7 +5,7 @@ set xrange [-5:5]
 set yrange [-5:5]
 set size ratio -1
 set label 1 sprintf('{/Symbol x}/a = -0.100, {/Symbol h}/a = 0.250, r/a = 1.128', -0.1, 0.25, 1.12805141726785) at graph 0.98,0.10 right
-set label 2 sprintf('{/Symbol G}/(2{/Symbol p} a U_0) = 0.000, {/Symbol a} = 15.0 deg', 0, 15) at graph 0.98,0.05 right
+set label 2 sprintf('{/Symbol G}/(2{/Symbol p} a U_0) = -0.086, {/Symbol a} = 15.0 deg', -0.0864389860810115, 15) at graph 0.98,0.05 right
 plot \
   'airfoil.dat' using ($1/1):($2/1) with lines lt -1 notitle, \
   'stream_00.dat' using ($1/1):($2/1) with lines lw 1 notitle, \

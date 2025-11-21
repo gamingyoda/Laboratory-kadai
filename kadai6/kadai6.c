@@ -40,14 +40,14 @@ void velocity(double xi, double eta,
     double term1_re = U * cosA;
     double term1_im = -U * sinA;
 
-    double tmp_re = cosA * inv2_re - sinA * inv2_im;
-    double tmp_im = cosA * inv2_im + sinA * inv2_re;
+    double tmp_re =  cosA * inv2_re - sinA * inv2_im;
+    double tmp_im =  cosA * inv2_im + sinA * inv2_re;
     double term2_re = -U * r * r * tmp_re;
     double term2_im = -U * r * r * tmp_im;
 
     double coefG = Gamma / (2.0 * PI);
-    double term3_re = coefG * inv_im;
-    double term3_im = coefG * (-inv_re);
+    double term3_re =  coefG * inv_im;
+    double term3_im =  coefG * (-inv_re);
 
     double v_re = term1_re + term2_re + term3_re;
     double v_im = term1_im + term2_im + term3_im;
@@ -63,19 +63,25 @@ int main(void)
 #endif
 
     /* ====== ここでパラメータを指定 ====== */
-    double a         = 1.0;
-    double xi0       = -0.10;
-    double eta0      =  0.25;
-    double U         = 1.0;
-    double alpha_deg = 15.0;
-    double Gamma     = 0.0;
+    double a         = 1.0;     
+    double xi0       = -0.10;   
+    double eta0      =  0.25; 
+    double U         = 1.0;    
+    double alpha_deg = 15.0;   
 
     double alpha = alpha_deg * PI / 180.0;
-    double cosA = cos(alpha);
-    double sinA = sin(alpha);
+    double cosA  = cos(alpha);
+    double sinA  = sin(alpha);
 
     double r = sqrt((a - xi0)*(a - xi0) + eta0*eta0);
     printf("円の半径 r = %g\n", r);
+
+    double beta = atan2(-eta0, a - xi0);
+    double Gamma = -4.0 * PI * r * U * sin(alpha + beta);
+
+    printf("beta (rad) = %g\n", beta);
+    printf("Gamma      = %g\n", Gamma);
+    printf("Gamma/(2π a U) = %g\n", Gamma / (2.0 * PI * a * U));
 
     FILE *fp_airfoil = fopen("airfoil.dat", "w");
     if (!fp_airfoil) {
@@ -85,6 +91,7 @@ int main(void)
 
     fprintf(fp_airfoil, "# Airfoil (Joukowski)\n");
     fprintf(fp_airfoil, "# a=%g, xi0=%g, eta0=%g, r=%g\n", a, xi0, eta0, r);
+    fprintf(fp_airfoil, "# Gamma=%g, alpha=%g[deg]\n", Gamma, alpha_deg);
 
     for (int n = 0; n <= NTHETA; n++) {
         double theta = 2.0 * PI * n / NTHETA;
@@ -124,8 +131,8 @@ int main(void)
 
         for (int n = 0; n < NSTEPS; n++) {
 
-            double xr = xi - xi0;
-            double yr = eta - eta0;
+            double xr   = xi - xi0;
+            double yr   = eta - eta0;
             double rho2 = xr*xr + yr*yr;
             if (rho2 < 1.0e-8) break;
             double denom = xi*xi + eta*eta;
