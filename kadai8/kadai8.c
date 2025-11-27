@@ -124,7 +124,7 @@ int main(void)
     fprintf(gp, "set view map\n");
     fprintf(gp, "set contour base\n");
     fprintf(gp, "unset surface\n");
-    fprintf(gp, "set cntrparam levels incremental 0,0.2,4.0\n");
+    fprintf(gp, "set cntrparam levels incremental -1.0,0.5,4.0\n");
     fprintf(gp, "set object 1 rect from 0,0 to 4,1 fc rgb 'gray' fs solid 0.4 border lc rgb 'black'\n");
     fprintf(gp, "splot 'field.dat' using 1:2:3 with lines notitle\n");
     fclose(gp);
@@ -192,8 +192,13 @@ void set_initial_conditions(void)
 
 void apply_bc(double psi[][NY+1], double omega[][NY+1])
 {
-    double U0 = 1.0; 
+    double U0 = 1.0;
+    double H     = 1.0;
+    double Lstep = 4.0;
+    int i_max = (int)round(Lstep / dx);
+    int j_max = (int)round(H / dy);
 
+    //CD
     for (int i = 0; i <= NX; i++) {
         if (is_solid[i][0]) {
             psi[i][0]   = 0.0;
@@ -207,23 +212,17 @@ void apply_bc(double psi[][NY+1], double omega[][NY+1])
             }
         }
     }
-
+    //EF
     for (int i = 0; i <= NX; i++) {
         if (is_solid[i][NY]) {
             psi[i][NY]   = 0.0;
             omega[i][NY] = 0.0;
         } else {
             psi[i][NY] = U0 * LY;
-
-            if (!is_solid[i][NY-1]) {
-                omega[i][NY] =
-                    -2.0*(psi[i][NY-1] - psi[i][NY])/(dy*dy);
-            } else {
-                omega[i][NY] = 0.0;
-            }
+            omega[i][NY] = 0.0;
         }
     }
-
+    //AF
     for (int j = 0; j <= NY; j++) {
 
         if (is_solid[0][j]) {
@@ -234,7 +233,7 @@ void apply_bc(double psi[][NY+1], double omega[][NY+1])
             omega[0][j] = omega[1][j];
         }
     }
-
+    //DE
     for (int j = 0; j <= NY; j++) {
         if (is_solid[NX][j]) {
             psi[NX][j]   = 0.0;
@@ -244,12 +243,40 @@ void apply_bc(double psi[][NY+1], double omega[][NY+1])
             omega[NX][j] = omega[NX-1][j];
         }
     }
+    //AB
+    {
+        int j = j_max;
+        for (int i = 0; i < i_max; i++) {
+            if (is_solid[i][j] && !is_solid[i][j+1]) {
+                psi[i][j]   = 0.0; 
+                omega[i][j] = -2.0 * psi[i][j+1] / (dy * dy); 
+            }
+        }
+    }
+    //BC
+    {
+        int i = i_max;
+        for (int j = 1; j < j_max; j++) { 
+            if (is_solid[i][j] && !is_solid[i+1][j]) {
+                psi[i][j]   = 0.0; 
+                omega[i][j] = -2.0 * psi[i+1][j] / (dx * dx);
+            }
+        }
+    }
+    //点Bの渦度の更新がない
+    {
+        int i = i_max;
+        int j = j_max;
+        if (is_solid[i][j] && !is_solid[i+1][j] && !is_solid[i][j+1]) {
+            psi[i][j]   = 0.0;
+            omega[i][j] = - (psi[i+1][j] / (dx * dx) + psi[i][j+1] / (dy * dy));
+        }
+    }
 
     for (int i = 0; i <= NX; i++) {
         for (int j = 0; j <= NY; j++) {
             if (is_solid[i][j]) {
                 psi[i][j]   = 0.0;
-                omega[i][j] = 0.0;
             }
         }
     }
@@ -306,9 +333,7 @@ void solve_poisson_sor(double psi[][NY+1], double omega[][NY+1])
             for (int j = 1; j < NY; j++) {
 
                 if (is_solid[i][j]) continue;  
-
                 double old = psi[i][j];
-
 
                 double term =
                     psi[i+1][j] + psi[i-1][j]
