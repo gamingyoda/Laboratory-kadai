@@ -103,6 +103,12 @@ static double ROE_Flux(Primitive WL, Primitive WR, Conservative *Fout)
     return 0.0;
 }
 
+static inline double minmod(double a, double b)
+{
+    if (a*b <= 0.0) return 0.0;
+    return (fabs(a) < fabs(b)) ? a : b;
+}
+
 static void zero_slope(Conservative *U, int n_end)
 {
     for (int i=0; i<2; i++) {
@@ -113,19 +119,62 @@ static void zero_slope(Conservative *U, int n_end)
 
 static void calculete_rhs(Conservative *U, Conservative *rhs, double dx, int n_end)
 {
-    Conservative *F = malloc(sizeof(Conservative)*(n_end-1));
+    for (int i=0; i<n_end; i++) rhs[i] = (Conservative){0,0,0};
+
+    Primitive *W  = (Primitive*)malloc(sizeof(Primitive)*n_end);
+    for (int i=0; i<n_end; i++) W[i] = cons_to_prim(U[i]);
+
+    Primitive *dW = (Primitive*)malloc(sizeof(Primitive)*n_end);
+    for (int i=0; i<n_end; i++) dW[i] = (Primitive){0,0,0};
+
+    for (int i=1; i<=n_end-2; i++) {
+        double dL = W[i].rho - W[i-1].rho;
+        double dR = W[i+1].rho - W[i].rho;
+        dW[i].rho = minmod(dL, dR);
+
+        dL = W[i].u - W[i-1].u;
+        dR = W[i+1].u - W[i].u;
+        dW[i].u = minmod(dL, dR);
+
+        dL = W[i].p - W[i-1].p;
+        dR = W[i+1].p - W[i].p;
+        dW[i].p = minmod(dL, dR);
+    }
+
+    Conservative *F = (Conservative*)malloc(sizeof(Conservative)*(n_end-1));
+
     for (int i=1; i<=n_end-3; i++) {
-        Primitive WL = cons_to_prim(U[i]);
-        Primitive WR = cons_to_prim(U[i+1]);
+        Primitive WL = (Primitive){
+            W[i].rho + 0.5*dW[i].rho,
+            W[i].u   + 0.5*dW[i].u,
+            W[i].p   + 0.5*dW[i].p
+        };
+        Primitive WR = (Primitive){
+            W[i+1].rho - 0.5*dW[i+1].rho,
+            W[i+1].u   - 0.5*dW[i+1].u,
+            W[i+1].p   - 0.5*dW[i+1].p
+        };
+
+        const double eps = 1e-12;
+        if (WL.rho <= eps || WL.p <= eps || WR.rho <= eps || WR.p <= eps) {
+            WL = W[i];
+            WR = W[i+1];
+        }
+
         ROE_Flux(WL, WR, &F[i]);
     }
+
     for (int i=2; i<=n_end-3; i++) {
         rhs[i].rho   = -(F[i].rho   - F[i-1].rho  ) / dx;
         rhs[i].rho_u = -(F[i].rho_u - F[i-1].rho_u) / dx;
         rhs[i].E     = -(F[i].E     - F[i-1].E    ) / dx;
     }
+
+    free(W);
+    free(dW);
     free(F);
 }
+
 
 static double calculate_dt(const Conservative *U, double dx, int n_end)
 {
@@ -158,9 +207,9 @@ static void write_and_plot(const Conservative *U, int n_end, int ng, double dx)
     }
     fclose(fp);
 
-    const char *gpname = "sod1d-1.gp";
+    const char *gpname = "sod1d-2.gp";
     FILE *gp = fopen(gpname, "w");
-    if (!gp) { perror("sod1d-1.gp"); return; }
+    if (!gp) { perror("sod1d-2.gp"); return; }
 
     fprintf(gp, "set grid\n");
     fprintf(gp, "set multiplot layout 3,1 title 'Sod 1D: Roe-FDS + TVD RK2 (t=%.3f, NX=%d)'\n", T_END, NX);
