@@ -15,8 +15,8 @@
 
 #define GAMMA 1.4
 
-#define NX 1000
-#define NY 1000
+#define NX 400
+#define NY 400
 #define X0 0.0
 #define X1 1.0
 #define Y0 0.0
@@ -189,16 +189,13 @@ static void zero_slope(Conservative *U, int nx_end, int ny_end, int ng)
 
 }
 
-static void calculate_rhs(Conservative *U, Conservative *rhs, double dx, double dy, int nx_end, int ny_end)
+static void calculate_rhs(Conservative *U, Conservative *rhs, double dx, double dy, int nx_end, int ny_end, Conservative *Fx, Conservative *Gy)
 {
     for (int j = 0; j < ny_end; j++) {
         for (int i = 0; i < nx_end; i++) {
             rhs[j * nx_end + i] = (Conservative){0, 0, 0, 0};
         }
     }
-
-    Conservative *Fx = (Conservative*)malloc(sizeof(Conservative) * (nx_end - 1) * ny_end);
-    Conservative *Gy = (Conservative*)malloc(sizeof(Conservative) * nx_end * (ny_end - 1));
 
     // mimod
 
@@ -226,8 +223,6 @@ static void calculate_rhs(Conservative *U, Conservative *rhs, double dx, double 
             rhs[j * nx_end + i].E     = -(Fx[j * (nx_end - 1) + i].E     - Fx[j * (nx_end - 1) + i - 1].E) / dx -(Gy[j * nx_end + i].E     - Gy[(j - 1) * nx_end + i].E) / dy;
         }
     }
-    free(Fx);
-    free(Gy);
 }
 
 static double calculate_dt(const Conservative *U, double dx, double dy, int nx_end, int ny_end)
@@ -261,6 +256,7 @@ static void write_and_plot(const Conservative *U, int nx_end, int ny_end, int ng
             Primitive W = cons_to_prim(U[j * nx_end + i]);
             fprintf(fp, "%.10f %.10f %.10f %.10f %.10f %.10f\n", x, y, W.rho, W.u, W.v, W.p);
         }
+        fprintf(fp, "\n");  // 各y行の後に空白行を追加（gnuplotのpm3d用）
     }
     fclose(fp);
 
@@ -299,6 +295,8 @@ int main(void)
     Conservative *U  = (Conservative*)malloc(sizeof(Conservative)*nx_end*ny_end);
     Conservative *U1 = (Conservative*)malloc(sizeof(Conservative)*nx_end*ny_end);
     Conservative *rhs= (Conservative*)malloc(sizeof(Conservative)*nx_end*ny_end);
+    Conservative *Fx = (Conservative*)malloc(sizeof(Conservative) * (nx_end - 1) * ny_end);
+    Conservative *Gy = (Conservative*)malloc(sizeof(Conservative) * nx_end * (ny_end - 1));
 
     Primitive WL = WL_INIT;
     Primitive WR = WR_INIT;
@@ -322,7 +320,7 @@ int main(void)
 
         //stage 1
         zero_slope(U, nx_end, ny_end, ng);
-        calculate_rhs(U, rhs, dx, dy, nx_end, ny_end);
+        calculate_rhs(U, rhs, dx, dy, nx_end, ny_end, Fx, Gy);
         for (int j=0; j<ny_end; j++) {
             for (int i=0; i<nx_end; i++) {
                 int idx = j * nx_end + i;
@@ -335,7 +333,7 @@ int main(void)
 
         //stage 2
         zero_slope(U1, nx_end, ny_end, ng);
-        calculate_rhs(U1, rhs, dx, dy, nx_end, ny_end);
+        calculate_rhs(U1, rhs, dx, dy, nx_end, ny_end, Fx, Gy);
         for (int j=0; j<ny_end; j++) {
             for (int i=0; i<nx_end; i++) {
                 int idx = j * nx_end + i;
@@ -355,6 +353,8 @@ int main(void)
     free(U);
     free(U1);
     free(rhs);
+    free(Fx);
+    free(Gy);
 
     return 0;
 }
