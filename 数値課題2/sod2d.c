@@ -260,27 +260,67 @@ static void write_and_plot(const Conservative *U, int nx_end, int ny_end, int ng
     }
     fclose(fp);
 
-    const char *gpname = "sod2d.gp";
-    FILE *gp = fopen(gpname, "w");
-    if (!gp) { perror("sod2d.gp"); return; }
-
-    fprintf(gp, "set grid\n");
-    fprintf(gp, "set pm3d map\n");
-    fprintf(gp, "set title 'Sod 2D: Roe-FDS + TVD RK2 (t=%.3f, NX=%d, NY=%d)'\n", T_END, NX, NY);
-    fprintf(gp, "set xlabel 'x'\n");
-    fprintf(gp, "set ylabel 'y'\n");
-    fprintf(gp, "set cblabel 'Density rho'\n");
-    fprintf(gp, "splot 'sod2d.dat' using 1:2:3 with pm3d notitle\n");
-    fclose(gp);
-    char cmd[256];
+    // 密度(rho)をプロット
+    const char *gpname_rho = "sod2d_rho.gp";
+    FILE *gp = fopen(gpname_rho, "w");
+    if (gp) {
+        fprintf(gp, "set grid\n");
+        fprintf(gp, "set pm3d map\n");
+        fprintf(gp, "set title 'Sod 2D: Density (t=%.3f, NX=%d, NY=%d)'\n", T_END, NX, NY);
+        fprintf(gp, "set xlabel 'x'\n");
+        fprintf(gp, "set ylabel 'y'\n");
+        fprintf(gp, "set cblabel 'Density rho'\n");
+        fprintf(gp, "splot 'sod2d.dat' using 1:2:3 with pm3d notitle\n");
+        fclose(gp);
+        char cmd[256];
 #ifdef _WIN32
-    snprintf(cmd, sizeof(cmd), "cmd /c gnuplot -persist \"%s\"", gpname);
+        snprintf(cmd, sizeof(cmd), "cmd /c gnuplot -persist \"%s\"", gpname_rho);
 #else
-    snprintf(cmd, sizeof(cmd), "gnuplot -persist \"%s\"", gpname);
+        snprintf(cmd, sizeof(cmd), "gnuplot -persist \"%s\"", gpname_rho);
 #endif
-    int ret = system(cmd);
-    if (ret != 0) {
-        fprintf(stderr, "gnuplot 実行に失敗しました (return=%d)。gnuplot が入っているか確認してください。\n", ret);
+        system(cmd);
+    }
+
+    // x方向速度(u)をプロット
+    const char *gpname_u = "sod2d_u.gp";
+    gp = fopen(gpname_u, "w");
+    if (gp) {
+        fprintf(gp, "set grid\n");
+        fprintf(gp, "set pm3d map\n");
+        fprintf(gp, "set title 'Sod 2D: Velocity u (t=%.3f, NX=%d, NY=%d)'\n", T_END, NX, NY);
+        fprintf(gp, "set xlabel 'x'\n");
+        fprintf(gp, "set ylabel 'y'\n");
+        fprintf(gp, "set cblabel 'Velocity u'\n");
+        fprintf(gp, "splot 'sod2d.dat' using 1:2:4 with pm3d notitle\n");
+        fclose(gp);
+        char cmd[256];
+#ifdef _WIN32
+        snprintf(cmd, sizeof(cmd), "cmd /c gnuplot -persist \"%s\"", gpname_u);
+#else
+        snprintf(cmd, sizeof(cmd), "gnuplot -persist \"%s\"", gpname_u);
+#endif
+        system(cmd);
+    }
+
+    // 圧力(p)をプロット
+    const char *gpname_p = "sod2d_p.gp";
+    gp = fopen(gpname_p, "w");
+    if (gp) {
+        fprintf(gp, "set grid\n");
+        fprintf(gp, "set pm3d map\n");
+        fprintf(gp, "set title 'Sod 2D: Pressure (t=%.3f, NX=%d, NY=%d)'\n", T_END, NX, NY);
+        fprintf(gp, "set xlabel 'x'\n");
+        fprintf(gp, "set ylabel 'y'\n");
+        fprintf(gp, "set cblabel 'Pressure p'\n");
+        fprintf(gp, "splot 'sod2d.dat' using 1:2:6 with pm3d notitle\n");
+        fclose(gp);
+        char cmd[256];
+#ifdef _WIN32
+        snprintf(cmd, sizeof(cmd), "cmd /c gnuplot -persist \"%s\"", gpname_p);
+#else
+        snprintf(cmd, sizeof(cmd), "gnuplot -persist \"%s\"", gpname_p);
+#endif
+        system(cmd);
     }
 }
 
